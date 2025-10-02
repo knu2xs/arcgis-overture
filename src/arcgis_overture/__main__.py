@@ -18,17 +18,18 @@ def get_spatially_enabled_dataframe(
     request_timeout: int = None,
 ) -> pd.DataFrame:
     """
-    Retrieve data from Overture Maps and return it as a Pandas spatially enabled DataFrame.
+    Retrieve data from Overture Maps as an
+    [ArcGIS spatially enabled Pandas DataFrame](https://developers.arcgis.com/python/latest/guide/introduction-to-the-spatially-enabled-dataframe/).
+
+    !!! note
+
+        To see available overture types, use `overturemaps.core.get_all_overture_types()`.
 
     Args:
         overture_type: Overture feature type to retrieve.
         bbox: Bounding box to filter the data. Format: (minx, miny, maxx, maxy).
         connect_timeout: Optional timeout in seconds for establishing a connection to the Overture Maps service.
         request_timeout: Optional timeout in seconds for waiting for a response from the Overture Maps service.
-
-    !!! note
-
-        To see available overture types, use `overturemaps.core.get_all_overture_types()`.
 
     Returns:
         A spatially enabled pandas DataFrame containing the requested Overture Maps data.
