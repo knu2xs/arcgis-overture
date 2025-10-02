@@ -1,5 +1,5 @@
 from .logging_utils import get_logger, format_pandas_for_logging, ArcpyHandler
-from .main import build_data_directory, has_arcpy, has_pandas, has_pyspark
+from .main import build_data_directory, has_arcpy, has_pandas
 
 __all__ = [
     "ArcpyHandler",
@@ -8,5 +8,4 @@ __all__ = [
     "format_pandas_for_logging",
     "has_arcpy",
     "has_pandas",
-    "has_pyspark",
 ]

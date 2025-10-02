@@ -9,9 +9,6 @@ dependencies:
   - arcgis
   - arcgis-mapping
   - black>=21
-  - cookiecutter
-  - dask
-  - h3-py
   - jupyterlab
   - jupyterlab_code_formatter
   - nodejs
@@ -19,11 +16,6 @@ dependencies:
   - pytest
   - pyarrow
   - pyyaml
-  - scipy
-  - scikit-learn
-  - seaborn
-  - swifter
-  - tabulate
   - tqdm
   - pip:
     - azure-storage-blob
@@ -36,5 +28,5 @@ dependencies:
     - mkdocs-jupyter
     - mkdocs-material
     - mkdocstrings[python]>=0.18
-    - placekey
+    - overturemaps
     - twine

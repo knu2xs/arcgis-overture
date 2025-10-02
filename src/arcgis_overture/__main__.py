@@ -1,95 +1,88 @@
-from typing import Union
-from pathlib import Path
+import json
 
+from arcgis.geometry import Geometry
+from geomet import wkb, esri
 import pandas as pd
+from overturemaps import core as ovm
 
 from .utils import get_logger
 
 # configure module logging
-logger = get_logger(logger_name="arcgis_overture", level="INFO")
+logger = get_logger(logger_name="arcgis_overture", level="DEBUG")
 
 
-def example_function(in_path: Union[str, Path]) -> pd.DataFrame:
+def get_spatially_enabled_dataframe(
+    overture_type: str,
+    bbox: tuple[float, float, float, float],
+    connect_timeout: int = None,
+    request_timeout: int = None,
+) -> pd.DataFrame:
     """
-    This is an example function, mostly to provide a template for properly
-    structuring a function and docstring for both you, and also for myself,
-    since I *almost always* have to look this up, and it's a *lot* easier
-    for it to be already templated.
+    Retrieve data from Overture Maps and return it as a Pandas spatially enabled DataFrame.
 
     Args:
-        in_path: Required path to something you really care about, or at least
-            want to exploit, a really big word used to simply say, *use*.
+        overture_type: Overture feature type to retrieve.
+        bbox: Bounding box to filter the data. Format: (minx, miny, maxx, maxy).
+        connect_timeout: Optional timeout in seconds for establishing a connection to the Overture Maps service.
+        request_timeout: Optional timeout in seconds for waiting for a response from the Overture Maps service.
+
+    !!! note
+
+        To see available overture types, use `overturemaps.core.get_all_overture_types()`.
 
     Returns:
-        Hypothetically, a Pandas Dataframe. Good luck with that.
-
-    ``` python
-    from arcgis_overture import example_function
-
-    pth = r'C:/path/to/some/table.csv'
-
-    df = example_function(pth)
-    ```
+        A spatially enabled pandas DataFrame containing the requested Overture Maps data.
     """
-    return pd.read_csv(in_path)
+    # validate the overture type
+    available_types = ovm.get_all_overture_types()
+    if overture_type not in available_types:
+        raise ValueError(
+            f"Invalid overture type: {overture_type}. Valid types are: {available_types}"
+        )
 
+    # validate the bounding box
+    if len(bbox) != 4:
+        raise ValueError(
+            "Bounding box must be a tuple of four values: (minx, miny, maxx, maxy)."
+        )
+    if not all(isinstance(coord, (int, float)) for coord in bbox):
+        raise ValueError(
+            "All coordinates in the bounding box must be numeric (int or float)."
+        )
+    if bbox[0] >= bbox[2] or bbox[1] >= bbox[3]:
+        raise ValueError(
+            "Invalid bounding box coordinates: ensure that minx < maxx and miny < maxy."
+        )
 
-class ExampleObject(object):
-    """
-    This is an example object, mostly to provide a template for properly
-    structuring a function and docstring for both you, and also for myself,
-    since I *almost always* have to look this up, and it's a *lot* easier
-    for it to be already templated.
-    """
+    # fetch the data from Overture Maps into an Arrow RecordBatchReader
+    reader = ovm.record_batch_reader(
+        overture_type, bbox, connect_timeout, request_timeout
+    )
 
-    def __init__(self, *args, **kwargs) -> None:
-        # is not applicable in all cases, but I always have to look it up, so it is here for simplicity's sake
-        super().__init__(*args, **kwargs)
+    # get an arrow table from the RecordBatchReader
+    tbl = reader.read_all()
 
-    @staticmethod
-    def example_static_function(in_path: Union[str, Path]) -> pd.DataFrame:
-        """
-        This is an example function, mostly to provide a template for properly
-        structuring a function and docstring for both you, and also for myself,
-        since I *almost always* have to look this up, and it's a *lot* easier
-        for it to be already templated.
+    tbl_cnt = tbl.num_rows
+    logger.debug(f"Fetched {tbl_cnt} rows of '{overture_type}' data from Overture Maps.")
+    if tbl_cnt == 0:
+        logger.warning(f"No '{overture_type}' data found for the specified bounding box: {bbox}")
 
-        Args:
-            in_path: Required path to something you really care about, or at least
-                want to exploit, a really big word used to simply say, *use*.
+    # convert the table to a pandas DataFrame
+    df = tbl.to_pandas()
 
-        Returns:
-            Hypothetically, a Pandas Dataframe. Good luck with that.
+    # get the geometry column from the metadata
+    geo_meta = tbl.schema.metadata.get(b"geo")
+    if geo_meta is None:
+        raise ValueError("No geometry metadata found in the Overture Maps data.")
+    geo_meta = json.loads(geo_meta.decode("utf-8"))
+    geom_col = geo_meta.get("primary_column")
+    if geom_col is None or geom_col not in df.columns:
+        raise ValueError("No valid primary_geometry column defined in the Overture Maps metadata.")
 
-        ``` python
-        from arcgis_overture import ExampleObject
+    # convert the geometry column from WKB to arcgis Geometry objects
+    df[geom_col] = df[geom_col].apply(lambda itm: Geometry(esri.dumps(wkb.loads(itm))))
 
-        pth = r'C:/path/to/some/table.csv'
+    # set the geometry column using the ArcGIS GeoAccessor to get a Spatially Enabled DataFrame
+    df.spatial.set_geometry(geom_col, sr=4326)
 
-        df = ExampleObject.example_function(pth)
-        ```
-        """
-        return pd.read_csv(in_path)
-
-    @classmethod
-    def example_class_method(cls) -> "ExampleObject":
-        """
-        Class methods prove really useful for when you need a method to
-        return an instance of the parent class. Again, I usually  have to
-        search for how to do this, so I also just put it in here.
-
-        Returns:
-            An instance of the class, duh!
-
-        ``` python
-        from from arcgis_overture import ExampleObject
-
-        pth = r'C:/path/to/some/table.csv'
-
-        obj_inst = ExampleObject.example_class_method()
-
-        df = obj_inst.example_function(pth)
-        ```
-        """
-        return cls()
-    
+    return df

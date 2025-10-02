@@ -91,3 +91,40 @@ def build_data_resources(data_dir: Union[str, Path]) -> Path:
     build_data_directory(data_dir / "processed", True)
 
     return data_dir
+
+
+def get_projjson(spatial_ref_input):
+    """
+    Converts a WKID or arcgis.SpatialReference to PROJJSON using EPSG.io API.
+
+    Parameters:
+        spatial_ref_input (int or arcgis.geometry.SpatialReference): The spatial reference input.
+
+    Returns:
+        dict: PROJJSON representation of the spatial reference.
+    """
+    if isinstance(spatial_ref_input, SpatialReference):
+        wkid = spatial_ref_input.wkid
+    elif isinstance(spatial_ref_input, int):
+        wkid = spatial_ref_input
+    else:
+        raise TypeError(
+            "Input must be an integer WKID or arcgis.SpatialReference object."
+        )
+
+    # EPSG.io API for PROJJSON
+    url = f"https://epsg.io/{wkid}.projjson"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise ValueError(
+            f"Could not retrieve PROJJSON for WKID {wkid}. Status code: {response.status_code}"
+        )
+
+
+# Example usage:
+# sr = SpatialReference(4326)
+# projjson = get_projjson(sr)
+# print(json.dumps(projjson, indent=2))

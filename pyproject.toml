@@ -8,7 +8,7 @@ version = "0.0.0"
 authors = [
   { name="Joel McCune (https://github.com/knu2xs)"},
 ]
-description = "Easily get data using overture-py into ArcGIS"
+description = "Easily get data using overturemaps-py into ArcGIS"
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
@@ -19,6 +19,7 @@ license = {file = "LICENSE"}
 dependencies = [
     "arcgis>=2.2.0",
     "numpy>=1.7",
+    "overturemaps",
     "pandas>=1.0.5",
     "pyarrow>=1.0.0"
 ]
