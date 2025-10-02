@@ -1,7 +1,7 @@
 ---
 title: Home
 ---
-# ArcGIS Overture 0.1.0.dev0 Documentation
+# ArcGIS Overture 0.1.0 Documentation
 
 ArcGIS Overture makes it easy to get data from Overture Maps into ArcGIS. Getting data from Overture Maps into a
 spatially enabled Pandas DataFrame is as easy as:
